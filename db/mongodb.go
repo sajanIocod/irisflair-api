@@ -52,9 +52,17 @@ func Disconnect() error {
 }
 
 func GetDB() *mongo.Database {
+	if Client == nil {
+		log.Println("ERROR: MongoDB client is nil – connection was never established")
+		return nil
+	}
 	dbName := os.Getenv("DB_NAME")
 	if dbName == "" {
 		dbName = "irisflair"
 	}
 	return Client.Database(dbName)
+}
+
+func IsConnected() bool {
+	return Client != nil
 }

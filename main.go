@@ -31,11 +31,9 @@ func main() {
 	// Connect to MongoDB
 	log.Println("Connecting to MongoDB...")
 	if err := db.Connect(); err != nil {
-		log.Printf("Failed to connect to MongoDB: %v", err)
-		log.Println("Server will start anyway - MongoDB connection will retry on requests")
-	} else {
-		defer db.Disconnect()
+		log.Fatalf("FATAL: Failed to connect to MongoDB: %v", err)
 	}
+	defer db.Disconnect()
 
 	// Initialize router
 	r := chi.NewRouter()
