@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: irisflair-api
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: PORT
+        value: 8080
+      - key: MONGODB_URI
+        sync: false  # Set manually in Render dashboard
+      - key: DB_NAME
+        value: irisflair
+      - key: JWT_SECRET
+        sync: false  # Set manually in Render dashboard
+      - key: ADMIN_USERNAME
+        sync: false  # Set manually in Render dashboard
+      - key: ADMIN_PASSWORD
+        sync: false  # Set manually in Render dashboard
