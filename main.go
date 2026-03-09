@@ -19,12 +19,23 @@ func main() {
 		port = "8080"
 	}
 
+	// Log config for debugging
+	mongoURI := os.Getenv("MONGODB_URI")
+	if mongoURI == "" {
+		log.Println("WARNING: MONGODB_URI not set, using localhost")
+	} else {
+		log.Println("MONGODB_URI is set (Atlas)")
+	}
+	log.Printf("PORT=%s", port)
+
 	// Connect to MongoDB
 	log.Println("Connecting to MongoDB...")
 	if err := db.Connect(); err != nil {
-		log.Fatalf("Failed to connect to MongoDB: %v", err)
+		log.Printf("Failed to connect to MongoDB: %v", err)
+		log.Println("Server will start anyway - MongoDB connection will retry on requests")
+	} else {
+		defer db.Disconnect()
 	}
-	defer db.Disconnect()
 
 	// Initialize router
 	r := chi.NewRouter()
