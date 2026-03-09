@@ -30,10 +30,13 @@ func main() {
 
 	// Connect to MongoDB
 	log.Println("Connecting to MongoDB...")
+	mongoConnected := false
 	if err := db.Connect(); err != nil {
-		log.Fatalf("FATAL: Failed to connect to MongoDB: %v", err)
+		log.Printf("FAILED to connect to MongoDB: %v", err)
+	} else {
+		mongoConnected = true
+		defer db.Disconnect()
 	}
-	defer db.Disconnect()
 
 	// Initialize router
 	r := chi.NewRouter()
@@ -81,7 +84,30 @@ func main() {
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		fmt.Fprintf(w, `{"status":"ok"}`)
+		if mongoConnected {
+			fmt.Fprintf(w, `{"status":"ok","mongo":"connected"}`)
+		} else {
+			fmt.Fprintf(w, `{"status":"degraded","mongo":"disconnected"}`)
+		}
+	})
+
+	// Debug endpoint (temporary)
+	r.Get("/debug/env", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		uri := os.Getenv("MONGODB_URI")
+		dbName := os.Getenv("DB_NAME")
+		jwtSecret := os.Getenv("JWT_SECRET")
+		uriSet := uri != ""
+		uriLen := len(uri)
+		// Mask the URI for security
+		maskedURI := ""
+		if uriLen > 20 {
+			maskedURI = uri[:20] + "..."
+		} else if uriLen > 0 {
+			maskedURI = "***"
+		}
+		fmt.Fprintf(w, `{"mongodb_uri_set":%t,"mongodb_uri_len":%d,"mongodb_uri_prefix":"%s","db_name":"%s","jwt_secret_set":%t,"mongo_connected":%t}`,
+			uriSet, uriLen, maskedURI, dbName, jwtSecret != "", mongoConnected)
 	})
 
 	// Start server
