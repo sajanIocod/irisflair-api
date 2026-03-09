@@ -26,6 +26,17 @@ func GetSettings(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Ensure slices are never nil (return [] not null in JSON)
+	if settings.Announcements == nil {
+		settings.Announcements = make([]string, 0)
+	}
+	if settings.ShowcaseBoxes == nil {
+		settings.ShowcaseBoxes = make([]models.ShowcaseBox, 0)
+	}
+	if settings.SocialProofs == nil {
+		settings.SocialProofs = make([]models.SocialProof, 0)
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(settings)
 }

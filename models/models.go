@@ -64,6 +64,32 @@ type SiteSettings struct {
 	HeroTitle      string             `bson:"heroTitle" json:"heroTitle"`
 	HeroSubtitle   string             `bson:"heroSubtitle" json:"heroSubtitle"`
 	HeroImage      string             `bson:"heroImage" json:"heroImage"`
+	// Announcement bar messages (scrolling marquee)
+	Announcements  []string           `bson:"announcements" json:"announcements"`
+	// Welcome popup
+	PopupEnabled   bool               `bson:"popupEnabled" json:"popupEnabled"`
+	PopupImage     string             `bson:"popupImage" json:"popupImage"`
+	PopupTitle     string             `bson:"popupTitle" json:"popupTitle"`
+	PopupText      string             `bson:"popupText" json:"popupText"`
+	// Showcase boxes (Best Sellers / Latest Designs / Hot Picks)
+	ShowcaseBoxes  []ShowcaseBox      `bson:"showcaseBoxes" json:"showcaseBoxes"`
+	// Social proof notifications
+	SocialProofs   []SocialProof      `bson:"socialProofs" json:"socialProofs"`
+}
+
+// ShowcaseBox represents a featured collection box on homepage
+type ShowcaseBox struct {
+	Title string `bson:"title" json:"title"`
+	Image string `bson:"image" json:"image"`
+	Link  string `bson:"link" json:"link"`
+}
+
+// SocialProof represents a social proof notification
+type SocialProof struct {
+	Name     string `bson:"name" json:"name"`
+	City     string `bson:"city" json:"city"`
+	Quantity int    `bson:"quantity" json:"quantity"`
+	Product  string `bson:"product" json:"product"`
 }
 
 // Admin represents admin user
