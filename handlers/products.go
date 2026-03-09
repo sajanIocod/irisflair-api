@@ -34,6 +34,16 @@ func GetProducts(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Ensure nested slices are never nil
+	for i := range products {
+		if products[i].Images == nil {
+			products[i].Images = make([]string, 0)
+		}
+		if products[i].Tiers == nil {
+			products[i].Tiers = make([]models.PriceTier, 0)
+		}
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(products)
 }
@@ -57,6 +67,16 @@ func GetActiveProducts(w http.ResponseWriter, r *http.Request) {
 	if err := cursor.All(ctx, &products); err != nil {
 		http.Error(w, "Failed to decode products", http.StatusInternalServerError)
 		return
+	}
+
+	// Ensure nested slices are never nil
+	for i := range products {
+		if products[i].Images == nil {
+			products[i].Images = make([]string, 0)
+		}
+		if products[i].Tiers == nil {
+			products[i].Tiers = make([]models.PriceTier, 0)
+		}
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -84,6 +104,14 @@ func GetProduct(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Ensure slices are never nil
+	if product.Images == nil {
+		product.Images = make([]string, 0)
+	}
+	if product.Tiers == nil {
+		product.Tiers = make([]models.PriceTier, 0)
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(product)
 }
@@ -99,6 +127,14 @@ func CreateProduct(w http.ResponseWriter, r *http.Request) {
 	product.ID = primitive.NewObjectID()
 	product.CreatedAt = time.Now()
 	product.UpdatedAt = time.Now()
+
+	// Ensure slices are never nil (so JSON returns [] not null)
+	if product.Images == nil {
+		product.Images = make([]string, 0)
+	}
+	if product.Tiers == nil {
+		product.Tiers = make([]models.PriceTier, 0)
+	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
