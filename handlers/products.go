@@ -28,7 +28,7 @@ func GetProducts(w http.ResponseWriter, r *http.Request) {
 	}
 	defer cursor.Close(ctx)
 
-	var products []models.Product
+	products := make([]models.Product, 0)
 	if err := cursor.All(ctx, &products); err != nil {
 		http.Error(w, "Failed to decode products", http.StatusInternalServerError)
 		return
@@ -53,7 +53,7 @@ func GetActiveProducts(w http.ResponseWriter, r *http.Request) {
 	}
 	defer cursor.Close(ctx)
 
-	var products []models.Product
+	products := make([]models.Product, 0)
 	if err := cursor.All(ctx, &products); err != nil {
 		http.Error(w, "Failed to decode products", http.StatusInternalServerError)
 		return

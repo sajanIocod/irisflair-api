@@ -28,7 +28,7 @@ func GetTestimonials(w http.ResponseWriter, r *http.Request) {
 	}
 	defer cursor.Close(ctx)
 
-	var testimonials []models.Testimonial
+	testimonials := make([]models.Testimonial, 0)
 	if err := cursor.All(ctx, &testimonials); err != nil {
 		http.Error(w, "Failed to decode testimonials", http.StatusInternalServerError)
 		return
@@ -53,7 +53,7 @@ func GetActiveTestimonials(w http.ResponseWriter, r *http.Request) {
 	}
 	defer cursor.Close(ctx)
 
-	var testimonials []models.Testimonial
+	testimonials := make([]models.Testimonial, 0)
 	if err := cursor.All(ctx, &testimonials); err != nil {
 		http.Error(w, "Failed to decode testimonials", http.StatusInternalServerError)
 		return

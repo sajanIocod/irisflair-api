@@ -28,7 +28,7 @@ func GetCategories(w http.ResponseWriter, r *http.Request) {
 	}
 	defer cursor.Close(ctx)
 
-	var categories []models.Category
+	categories := make([]models.Category, 0)
 	if err := cursor.All(ctx, &categories); err != nil {
 		http.Error(w, "Failed to decode categories", http.StatusInternalServerError)
 		return
@@ -53,7 +53,7 @@ func GetActiveCategories(w http.ResponseWriter, r *http.Request) {
 	}
 	defer cursor.Close(ctx)
 
-	var categories []models.Category
+	categories := make([]models.Category, 0)
 	if err := cursor.All(ctx, &categories); err != nil {
 		http.Error(w, "Failed to decode categories", http.StatusInternalServerError)
 		return
