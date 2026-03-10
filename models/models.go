@@ -15,6 +15,7 @@ type Product struct {
 	Description string             `bson:"description" json:"description"`
 	Images      []string           `bson:"images" json:"images"`
 	Tiers       []PriceTier        `bson:"tiers" json:"tiers"`
+	PaperTypes  []PaperType        `bson:"paperTypes" json:"paperTypes"`
 	MinOrder    int                `bson:"minOrder" json:"minOrder"`
 	Featured    bool               `bson:"featured" json:"featured"`
 	Active      bool               `bson:"active" json:"active"`
@@ -26,6 +27,12 @@ type PriceTier struct {
 	MinQty int `bson:"minQty" json:"minQty"`
 	MaxQty int `bson:"maxQty" json:"maxQty"`
 	Price  int `bson:"price" json:"price"`
+}
+
+// PaperType represents a paper option with its price modifier
+type PaperType struct {
+	Name          string `bson:"name" json:"name"`
+	PriceModifier int    `bson:"priceModifier" json:"priceModifier"` // ₹ added per card (can be 0 for default)
 }
 
 // Category represents a product category
@@ -67,10 +74,11 @@ type SiteSettings struct {
 	// Announcement bar messages (scrolling marquee)
 	Announcements  []string           `bson:"announcements" json:"announcements"`
 	// Welcome popup
-	PopupEnabled   bool               `bson:"popupEnabled" json:"popupEnabled"`
-	PopupImage     string             `bson:"popupImage" json:"popupImage"`
-	PopupTitle     string             `bson:"popupTitle" json:"popupTitle"`
-	PopupText      string             `bson:"popupText" json:"popupText"`
+	PopupEnabled        bool               `bson:"popupEnabled" json:"popupEnabled"`
+	PopupImage          string             `bson:"popupImage" json:"popupImage"`
+	PopupTitle          string             `bson:"popupTitle" json:"popupTitle"`
+	PopupText           string             `bson:"popupText" json:"popupText"`
+	PopupCollectContact bool               `bson:"popupCollectContact" json:"popupCollectContact"`
 	// Showcase boxes (Best Sellers / Latest Designs / Hot Picks)
 	ShowcaseBoxes  []ShowcaseBox      `bson:"showcaseBoxes" json:"showcaseBoxes"`
 	// Social proof notifications

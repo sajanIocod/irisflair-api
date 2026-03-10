@@ -43,6 +43,9 @@ func GetProducts(w http.ResponseWriter, r *http.Request) {
 		if products[i].Tiers == nil {
 			products[i].Tiers = make([]models.PriceTier, 0)
 		}
+		if products[i].PaperTypes == nil {
+			products[i].PaperTypes = make([]models.PaperType, 0)
+		}
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -78,6 +81,9 @@ func GetActiveProducts(w http.ResponseWriter, r *http.Request) {
 		if products[i].Tiers == nil {
 			products[i].Tiers = make([]models.PriceTier, 0)
 		}
+		if products[i].PaperTypes == nil {
+			products[i].PaperTypes = make([]models.PaperType, 0)
+		}
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -112,6 +118,9 @@ func GetProduct(w http.ResponseWriter, r *http.Request) {
 	if product.Tiers == nil {
 		product.Tiers = make([]models.PriceTier, 0)
 	}
+	if product.PaperTypes == nil {
+		product.PaperTypes = make([]models.PaperType, 0)
+	}
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(product)
@@ -135,6 +144,9 @@ func CreateProduct(w http.ResponseWriter, r *http.Request) {
 	}
 	if product.Tiers == nil {
 		product.Tiers = make([]models.PriceTier, 0)
+	}
+	if product.PaperTypes == nil {
+		product.PaperTypes = make([]models.PaperType, 0)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
