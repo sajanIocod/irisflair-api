@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/irisflair/api/db"
 	"github.com/irisflair/api/models"
 	"go.mongodb.org/mongo-driver/bson"
@@ -92,7 +93,7 @@ func CreateCategory(w http.ResponseWriter, r *http.Request) {
 
 // UpdateCategory updates an existing category
 func UpdateCategory(w http.ResponseWriter, r *http.Request) {
-	id := r.PathValue("id")
+	id := chi.URLParam(r, "id")
 	
 	objID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
@@ -127,7 +128,7 @@ func UpdateCategory(w http.ResponseWriter, r *http.Request) {
 
 // DeleteCategory deletes a category
 func DeleteCategory(w http.ResponseWriter, r *http.Request) {
-	id := r.PathValue("id")
+	id := chi.URLParam(r, "id")
 	
 	objID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {

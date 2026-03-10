@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/irisflair/api/db"
 	"github.com/irisflair/api/models"
 	"go.mongodb.org/mongo-driver/bson"
@@ -95,7 +96,7 @@ func CreateTestimonial(w http.ResponseWriter, r *http.Request) {
 
 // UpdateTestimonial updates an existing testimonial
 func UpdateTestimonial(w http.ResponseWriter, r *http.Request) {
-	id := r.PathValue("id")
+	id := chi.URLParam(r, "id")
 	
 	objID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
@@ -130,7 +131,7 @@ func UpdateTestimonial(w http.ResponseWriter, r *http.Request) {
 
 // DeleteTestimonial deletes a testimonial
 func DeleteTestimonial(w http.ResponseWriter, r *http.Request) {
-	id := r.PathValue("id")
+	id := chi.URLParam(r, "id")
 	
 	objID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {

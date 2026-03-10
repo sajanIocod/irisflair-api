@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/irisflair/api/db"
 	"github.com/irisflair/api/models"
 	"go.mongodb.org/mongo-driver/bson"
@@ -85,7 +86,7 @@ func GetActiveProducts(w http.ResponseWriter, r *http.Request) {
 
 // GetProduct returns a single product by ID
 func GetProduct(w http.ResponseWriter, r *http.Request) {
-	id := r.PathValue("id")
+	id := chi.URLParam(r, "id")
 	
 	objID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
@@ -155,7 +156,7 @@ func CreateProduct(w http.ResponseWriter, r *http.Request) {
 
 // UpdateProduct updates an existing product
 func UpdateProduct(w http.ResponseWriter, r *http.Request) {
-	id := r.PathValue("id")
+	id := chi.URLParam(r, "id")
 	
 	objID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
@@ -193,7 +194,7 @@ func UpdateProduct(w http.ResponseWriter, r *http.Request) {
 
 // DeleteProduct deletes a product
 func DeleteProduct(w http.ResponseWriter, r *http.Request) {
-	id := r.PathValue("id")
+	id := chi.URLParam(r, "id")
 	
 	objID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
