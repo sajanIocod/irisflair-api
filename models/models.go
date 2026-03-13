@@ -19,6 +19,7 @@ type Product struct {
 	MinOrder    int                `bson:"minOrder" json:"minOrder"`
 	Featured    bool               `bson:"featured" json:"featured"`
 	Active      bool               `bson:"active" json:"active"`
+	Tags        []string           `bson:"tags" json:"tags"`
 	CreatedAt   time.Time          `bson:"createdAt" json:"createdAt"`
 	UpdatedAt   time.Time          `bson:"updatedAt" json:"updatedAt"`
 }
