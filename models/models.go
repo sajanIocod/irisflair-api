@@ -19,7 +19,9 @@ type Product struct {
 	MinOrder    int                `bson:"minOrder" json:"minOrder"`
 	Featured    bool               `bson:"featured" json:"featured"`
 	Active      bool               `bson:"active" json:"active"`
+	OutOfStock  bool               `bson:"outOfStock" json:"outOfStock"`
 	Tags        []string           `bson:"tags" json:"tags"`
+	ColorVariants []ColorVariant   `bson:"colorVariants" json:"colorVariants"`
 	CreatedAt   time.Time          `bson:"createdAt" json:"createdAt"`
 	UpdatedAt   time.Time          `bson:"updatedAt" json:"updatedAt"`
 }
@@ -34,6 +36,14 @@ type PriceTier struct {
 type PaperType struct {
 	Name          string `bson:"name" json:"name"`
 	PriceModifier int    `bson:"priceModifier" json:"priceModifier"` // ₹ added per card (can be 0 for default)
+}
+
+// ColorVariant represents a color option for a product
+type ColorVariant struct {
+	Name          string   `bson:"name" json:"name"`             // e.g. "Rose Gold", "Navy Blue"
+	HexCode       string   `bson:"hexCode" json:"hexCode"`       // e.g. "#B76E79"
+	PriceModifier int      `bson:"priceModifier" json:"priceModifier"` // ₹ added per card (can be 0)
+	Images        []string `bson:"images" json:"images"`         // optional separate images for this color
 }
 
 // Category represents a product category
