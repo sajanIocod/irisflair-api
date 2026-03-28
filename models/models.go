@@ -69,6 +69,7 @@ type Testimonial struct {
 type SiteSettings struct {
 	ID             primitive.ObjectID `bson:"_id,omitempty" json:"id"`
 	Logo           string             `bson:"logo" json:"logo"`
+	Favicon        string             `bson:"favicon" json:"favicon"`
 	BrandName      string             `bson:"brandName" json:"brandName"`
 	Tagline        string             `bson:"tagline" json:"tagline"`
 	WhatsappNumber string             `bson:"whatsappNumber" json:"whatsappNumber"`
