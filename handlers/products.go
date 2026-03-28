@@ -46,6 +46,17 @@ func GetProducts(w http.ResponseWriter, r *http.Request) {
 		if products[i].PaperTypes == nil {
 			products[i].PaperTypes = make([]models.PaperType, 0)
 		}
+		if products[i].ColorVariants == nil {
+			products[i].ColorVariants = make([]models.ColorVariant, 0)
+		}
+		for j := range products[i].ColorVariants {
+			if products[i].ColorVariants[j].Images == nil {
+				products[i].ColorVariants[j].Images = make([]string, 0)
+			}
+		}
+		if products[i].Tags == nil {
+			products[i].Tags = make([]string, 0)
+		}
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -84,6 +95,17 @@ func GetActiveProducts(w http.ResponseWriter, r *http.Request) {
 		if products[i].PaperTypes == nil {
 			products[i].PaperTypes = make([]models.PaperType, 0)
 		}
+		if products[i].ColorVariants == nil {
+			products[i].ColorVariants = make([]models.ColorVariant, 0)
+		}
+		for j := range products[i].ColorVariants {
+			if products[i].ColorVariants[j].Images == nil {
+				products[i].ColorVariants[j].Images = make([]string, 0)
+			}
+		}
+		if products[i].Tags == nil {
+			products[i].Tags = make([]string, 0)
+		}
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -121,6 +143,17 @@ func GetProduct(w http.ResponseWriter, r *http.Request) {
 	if product.PaperTypes == nil {
 		product.PaperTypes = make([]models.PaperType, 0)
 	}
+	if product.ColorVariants == nil {
+		product.ColorVariants = make([]models.ColorVariant, 0)
+	}
+	for i := range product.ColorVariants {
+		if product.ColorVariants[i].Images == nil {
+			product.ColorVariants[i].Images = make([]string, 0)
+		}
+	}
+	if product.Tags == nil {
+		product.Tags = make([]string, 0)
+	}
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(product)
@@ -147,6 +180,17 @@ func CreateProduct(w http.ResponseWriter, r *http.Request) {
 	}
 	if product.PaperTypes == nil {
 		product.PaperTypes = make([]models.PaperType, 0)
+	}
+	if product.ColorVariants == nil {
+		product.ColorVariants = make([]models.ColorVariant, 0)
+	}
+	for i := range product.ColorVariants {
+		if product.ColorVariants[i].Images == nil {
+			product.ColorVariants[i].Images = make([]string, 0)
+		}
+	}
+	if product.Tags == nil {
+		product.Tags = make([]string, 0)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
