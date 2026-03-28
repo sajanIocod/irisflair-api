@@ -36,6 +36,9 @@ func GetSettings(w http.ResponseWriter, r *http.Request) {
 	if settings.SocialProofs == nil {
 		settings.SocialProofs = make([]models.SocialProof, 0)
 	}
+	if settings.HeroImages == nil {
+		settings.HeroImages = make([]string, 0)
+	}
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(settings)

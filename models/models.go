@@ -84,6 +84,7 @@ type SiteSettings struct {
 	HeroImage      string             `bson:"heroImage" json:"heroImage"`
 	HeroImage2     string             `bson:"heroImage2" json:"heroImage2"`
 	HeroImage3     string             `bson:"heroImage3" json:"heroImage3"`
+	HeroImages     []string           `bson:"heroImages" json:"heroImages"`
 	// Announcement bar messages (scrolling marquee)
 	Announcements  []string           `bson:"announcements" json:"announcements"`
 	// Welcome popup
