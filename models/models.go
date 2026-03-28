@@ -68,6 +68,7 @@ type Testimonial struct {
 // SiteSettings represents site configuration
 type SiteSettings struct {
 	ID             primitive.ObjectID `bson:"_id,omitempty" json:"id"`
+	Logo           string             `bson:"logo" json:"logo"`
 	BrandName      string             `bson:"brandName" json:"brandName"`
 	Tagline        string             `bson:"tagline" json:"tagline"`
 	WhatsappNumber string             `bson:"whatsappNumber" json:"whatsappNumber"`
