@@ -75,6 +75,14 @@ func main() {
 		r.With(middleware.AuthMiddleware).Put("/testimonials/{id}", handlers.UpdateTestimonial)
 		r.With(middleware.AuthMiddleware).Delete("/testimonials/{id}", handlers.DeleteTestimonial)
 
+		// FAQ routes (public read, protected write)
+		r.Get("/faqs", handlers.GetFAQs)
+		r.Get("/faqs/active", handlers.GetActiveFAQs)
+
+		r.With(middleware.AuthMiddleware).Post("/faqs", handlers.CreateFAQ)
+		r.With(middleware.AuthMiddleware).Put("/faqs/{id}", handlers.UpdateFAQ)
+		r.With(middleware.AuthMiddleware).Delete("/faqs/{id}", handlers.DeleteFAQ)
+
 		// Settings routes
 		r.Get("/settings", handlers.GetSettings)
 		r.With(middleware.AuthMiddleware).Put("/settings", handlers.UpdateSettings)

@@ -113,6 +113,15 @@ type SocialProof struct {
 	Product  string `bson:"product" json:"product"`
 }
 
+// FAQ represents a frequently asked question
+type FAQ struct {
+	ID       primitive.ObjectID `bson:"_id,omitempty" json:"id"`
+	Question string             `bson:"question" json:"question"`
+	Answer   string             `bson:"answer" json:"answer"`
+	Order    int                `bson:"order" json:"order"`
+	Active   bool               `bson:"active" json:"active"`
+}
+
 // Admin represents admin user
 type Admin struct {
 	ID        primitive.ObjectID `bson:"_id,omitempty" json:"id"`
