@@ -22,6 +22,7 @@ type Product struct {
 	OutOfStock  bool               `bson:"outOfStock" json:"outOfStock"`
 	Tags        []string           `bson:"tags" json:"tags"`
 	ColorVariants []ColorVariant   `bson:"colorVariants" json:"colorVariants"`
+	HasAdditionalPrintingCharge bool `bson:"hasAdditionalPrintingCharge" json:"hasAdditionalPrintingCharge"`
 	CreatedAt   time.Time          `bson:"createdAt" json:"createdAt"`
 	UpdatedAt   time.Time          `bson:"updatedAt" json:"updatedAt"`
 }
