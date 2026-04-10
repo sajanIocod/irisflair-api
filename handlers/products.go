@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"encoding/json"
+	"log"
 	"net/http"
 	"time"
 
@@ -163,7 +164,8 @@ func GetProduct(w http.ResponseWriter, r *http.Request) {
 func CreateProduct(w http.ResponseWriter, r *http.Request) {
 	var product models.Product
 	if err := json.NewDecoder(r.Body).Decode(&product); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		log.Printf("CreateProduct decode error: %v", err)
+		http.Error(w, "Invalid request body: "+err.Error(), http.StatusBadRequest)
 		return
 	}
 
@@ -193,13 +195,14 @@ func CreateProduct(w http.ResponseWriter, r *http.Request) {
 		product.Tags = make([]string, 0)
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
 	collection := db.GetDB().Collection("products")
 	result, err := collection.InsertOne(ctx, product)
 	if err != nil {
-		http.Error(w, "Failed to create product", http.StatusInternalServerError)
+		log.Printf("CreateProduct insert error: %v", err)
+		http.Error(w, "Failed to create product: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -222,19 +225,21 @@ func UpdateProduct(w http.ResponseWriter, r *http.Request) {
 
 	var updates bson.M
 	if err := json.NewDecoder(r.Body).Decode(&updates); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		log.Printf("UpdateProduct decode error: %v", err)
+		http.Error(w, "Invalid request body: "+err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	updates["updatedAt"] = time.Now()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
 	collection := db.GetDB().Collection("products")
 	result, err := collection.UpdateOne(ctx, bson.M{"_id": objID}, bson.M{"$set": updates})
 	if err != nil {
-		http.Error(w, "Failed to update product", http.StatusInternalServerError)
+		log.Printf("UpdateProduct update error: %v", err)
+		http.Error(w, "Failed to update product: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 

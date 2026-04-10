@@ -11,7 +11,7 @@ type Product struct {
 	Name        string             `bson:"name" json:"name"`
 	Code        string             `bson:"code" json:"code"`
 	Category    string             `bson:"category" json:"category"`
-	Price       int                `bson:"price" json:"price"`
+	Price       float64            `bson:"price" json:"price"`
 	Description string             `bson:"description" json:"description"`
 	Images      []string           `bson:"images" json:"images"`
 	Tiers       []PriceTier        `bson:"tiers" json:"tiers"`
@@ -28,22 +28,22 @@ type Product struct {
 }
 
 type PriceTier struct {
-	MinQty int `bson:"minQty" json:"minQty"`
-	MaxQty int `bson:"maxQty" json:"maxQty"`
-	Price  int `bson:"price" json:"price"`
+	MinQty int     `bson:"minQty" json:"minQty"`
+	MaxQty int     `bson:"maxQty" json:"maxQty"`
+	Price  float64 `bson:"price" json:"price"`
 }
 
 // PaperType represents a paper option with its price modifier
 type PaperType struct {
-	Name          string `bson:"name" json:"name"`
-	PriceModifier int    `bson:"priceModifier" json:"priceModifier"` // ₹ added per card (can be 0 for default)
+	Name          string  `bson:"name" json:"name"`
+	PriceModifier float64 `bson:"priceModifier" json:"priceModifier"` // ₹ added per card (can be 0 for default)
 }
 
 // ColorVariant represents a color option for a product
 type ColorVariant struct {
 	Name          string   `bson:"name" json:"name"`             // e.g. "Rose Gold", "Navy Blue"
 	HexCode       string   `bson:"hexCode" json:"hexCode"`       // e.g. "#B76E79"
-	PriceModifier int      `bson:"priceModifier" json:"priceModifier"` // ₹ added per card (can be 0)
+	PriceModifier float64  `bson:"priceModifier" json:"priceModifier"` // ₹ added per card (can be 0)
 	Images        []string `bson:"images" json:"images"`         // optional separate images for this color
 }
 
