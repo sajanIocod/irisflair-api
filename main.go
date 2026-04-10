@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/irisflair/api/db"
@@ -98,6 +99,25 @@ func main() {
 			fmt.Fprintf(w, `{"status":"degraded","mongo":"disconnected"}`)
 		}
 	})
+
+	// Self-ping to keep Render free tier alive (pings every 14 minutes)
+	selfURL := os.Getenv("RENDER_EXTERNAL_URL")
+	if selfURL != "" {
+		go func() {
+			ticker := time.NewTicker(14 * time.Minute)
+			defer ticker.Stop()
+			for range ticker.C {
+				resp, err := http.Get(selfURL + "/health")
+				if err != nil {
+					log.Printf("Self-ping failed: %v", err)
+				} else {
+					resp.Body.Close()
+					log.Println("Self-ping OK — keeping alive")
+				}
+			}
+		}()
+		log.Println("✓ Self-ping enabled (every 14 min)")
+	}
 
 	// Start server
 	log.Printf("Starting server on port %s...", port)

@@ -6,17 +6,12 @@ WORKDIR /app
 # Install git (needed for go mod download)
 RUN apk add --no-cache git
 
-# Copy go mod file first
-COPY go.mod ./
-
-# Download dependencies (generates go.sum)
-RUN go mod download
-
-# Copy source code
+# Copy all source code first
 COPY . .
 
-# Tidy modules
+# Download dependencies and generate go.sum
 RUN go mod tidy
+RUN go mod download
 
 # Build binary
 RUN CGO_ENABLED=0 GOOS=linux go build -o server .
