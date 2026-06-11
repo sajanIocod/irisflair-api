@@ -17,7 +17,7 @@ import (
 
 // GetProducts returns all products
 func GetProducts(w http.ResponseWriter, r *http.Request) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), queryTimeout)
 	defer cancel()
 
 	collection := db.GetDB().Collection("products")
@@ -25,6 +25,7 @@ func GetProducts(w http.ResponseWriter, r *http.Request) {
 	
 	cursor, err := collection.Find(ctx, bson.M{}, opts)
 	if err != nil {
+		log.Printf("GetProducts: find error: %v", err)
 		http.Error(w, "Failed to fetch products", http.StatusInternalServerError)
 		return
 	}
@@ -32,41 +33,21 @@ func GetProducts(w http.ResponseWriter, r *http.Request) {
 
 	products := make([]models.Product, 0)
 	if err := cursor.All(ctx, &products); err != nil {
+		log.Printf("GetProducts: decode error: %v", err)
 		http.Error(w, "Failed to decode products", http.StatusInternalServerError)
 		return
 	}
 
-	// Ensure nested slices are never nil
 	for i := range products {
-		if products[i].Images == nil {
-			products[i].Images = make([]string, 0)
-		}
-		if products[i].Tiers == nil {
-			products[i].Tiers = make([]models.PriceTier, 0)
-		}
-		if products[i].PaperTypes == nil {
-			products[i].PaperTypes = make([]models.PaperType, 0)
-		}
-		if products[i].ColorVariants == nil {
-			products[i].ColorVariants = make([]models.ColorVariant, 0)
-		}
-		for j := range products[i].ColorVariants {
-			if products[i].ColorVariants[j].Images == nil {
-				products[i].ColorVariants[j].Images = make([]string, 0)
-			}
-		}
-		if products[i].Tags == nil {
-			products[i].Tags = make([]string, 0)
-		}
+		normalizeProduct(&products[i])
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(products)
+	writeJSON(w, http.StatusOK, products)
 }
 
 // GetActiveProducts returns only active products
 func GetActiveProducts(w http.ResponseWriter, r *http.Request) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), queryTimeout)
 	defer cancel()
 
 	collection := db.GetDB().Collection("products")
@@ -74,6 +55,7 @@ func GetActiveProducts(w http.ResponseWriter, r *http.Request) {
 	
 	cursor, err := collection.Find(ctx, bson.M{"active": true}, opts)
 	if err != nil {
+		log.Printf("GetActiveProducts: find error: %v", err)
 		http.Error(w, "Failed to fetch products", http.StatusInternalServerError)
 		return
 	}
@@ -81,36 +63,16 @@ func GetActiveProducts(w http.ResponseWriter, r *http.Request) {
 
 	products := make([]models.Product, 0)
 	if err := cursor.All(ctx, &products); err != nil {
+		log.Printf("GetActiveProducts: decode error: %v", err)
 		http.Error(w, "Failed to decode products", http.StatusInternalServerError)
 		return
 	}
 
-	// Ensure nested slices are never nil
 	for i := range products {
-		if products[i].Images == nil {
-			products[i].Images = make([]string, 0)
-		}
-		if products[i].Tiers == nil {
-			products[i].Tiers = make([]models.PriceTier, 0)
-		}
-		if products[i].PaperTypes == nil {
-			products[i].PaperTypes = make([]models.PaperType, 0)
-		}
-		if products[i].ColorVariants == nil {
-			products[i].ColorVariants = make([]models.ColorVariant, 0)
-		}
-		for j := range products[i].ColorVariants {
-			if products[i].ColorVariants[j].Images == nil {
-				products[i].ColorVariants[j].Images = make([]string, 0)
-			}
-		}
-		if products[i].Tags == nil {
-			products[i].Tags = make([]string, 0)
-		}
+		normalizeProduct(&products[i])
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(products)
+	writeJSON(w, http.StatusOK, products)
 }
 
 // GetProduct returns a single product by ID
@@ -123,7 +85,7 @@ func GetProduct(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), queryTimeout)
 	defer cancel()
 
 	collection := db.GetDB().Collection("products")
@@ -134,30 +96,9 @@ func GetProduct(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Ensure slices are never nil
-	if product.Images == nil {
-		product.Images = make([]string, 0)
-	}
-	if product.Tiers == nil {
-		product.Tiers = make([]models.PriceTier, 0)
-	}
-	if product.PaperTypes == nil {
-		product.PaperTypes = make([]models.PaperType, 0)
-	}
-	if product.ColorVariants == nil {
-		product.ColorVariants = make([]models.ColorVariant, 0)
-	}
-	for i := range product.ColorVariants {
-		if product.ColorVariants[i].Images == nil {
-			product.ColorVariants[i].Images = make([]string, 0)
-		}
-	}
-	if product.Tags == nil {
-		product.Tags = make([]string, 0)
-	}
+	normalizeProduct(&product)
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(product)
+	writeJSON(w, http.StatusOK, product)
 }
 
 // CreateProduct creates a new product
@@ -165,7 +106,12 @@ func CreateProduct(w http.ResponseWriter, r *http.Request) {
 	var product models.Product
 	if err := json.NewDecoder(r.Body).Decode(&product); err != nil {
 		log.Printf("CreateProduct decode error: %v", err)
-		http.Error(w, "Invalid request body: "+err.Error(), http.StatusBadRequest)
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if err := validateProduct(&product); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
@@ -173,44 +119,22 @@ func CreateProduct(w http.ResponseWriter, r *http.Request) {
 	product.CreatedAt = time.Now()
 	product.UpdatedAt = time.Now()
 
-	// Ensure slices are never nil (so JSON returns [] not null)
-	if product.Images == nil {
-		product.Images = make([]string, 0)
-	}
-	if product.Tiers == nil {
-		product.Tiers = make([]models.PriceTier, 0)
-	}
-	if product.PaperTypes == nil {
-		product.PaperTypes = make([]models.PaperType, 0)
-	}
-	if product.ColorVariants == nil {
-		product.ColorVariants = make([]models.ColorVariant, 0)
-	}
-	for i := range product.ColorVariants {
-		if product.ColorVariants[i].Images == nil {
-			product.ColorVariants[i].Images = make([]string, 0)
-		}
-	}
-	if product.Tags == nil {
-		product.Tags = make([]string, 0)
-	}
+	normalizeProduct(&product)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), writeTimeout)
 	defer cancel()
 
 	collection := db.GetDB().Collection("products")
 	result, err := collection.InsertOne(ctx, product)
 	if err != nil {
 		log.Printf("CreateProduct insert error: %v", err)
-		http.Error(w, "Failed to create product: "+err.Error(), http.StatusInternalServerError)
+		http.Error(w, "Failed to create product", http.StatusInternalServerError)
 		return
 	}
 
 	product.ID = result.InsertedID.(primitive.ObjectID)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(product)
+	writeJSON(w, http.StatusCreated, product)
 }
 
 // UpdateProduct updates an existing product
@@ -226,20 +150,21 @@ func UpdateProduct(w http.ResponseWriter, r *http.Request) {
 	var updates bson.M
 	if err := json.NewDecoder(r.Body).Decode(&updates); err != nil {
 		log.Printf("UpdateProduct decode error: %v", err)
-		http.Error(w, "Invalid request body: "+err.Error(), http.StatusBadRequest)
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
+	updates = sanitizeUpdates(updates, "_id", "id", "createdAt")
 	updates["updatedAt"] = time.Now()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), writeTimeout)
 	defer cancel()
 
 	collection := db.GetDB().Collection("products")
 	result, err := collection.UpdateOne(ctx, bson.M{"_id": objID}, bson.M{"$set": updates})
 	if err != nil {
 		log.Printf("UpdateProduct update error: %v", err)
-		http.Error(w, "Failed to update product: "+err.Error(), http.StatusInternalServerError)
+		http.Error(w, "Failed to update product", http.StatusInternalServerError)
 		return
 	}
 
@@ -248,9 +173,7 @@ func UpdateProduct(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]string{"message": "Product updated"})
+	writeJSON(w, http.StatusOK, map[string]string{"message": "Product updated"})
 }
 
 // DeleteProduct deletes a product
@@ -263,12 +186,13 @@ func DeleteProduct(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), queryTimeout)
 	defer cancel()
 
 	collection := db.GetDB().Collection("products")
 	result, err := collection.DeleteOne(ctx, bson.M{"_id": objID})
 	if err != nil {
+		log.Printf("DeleteProduct delete error: %v", err)
 		http.Error(w, "Failed to delete product", http.StatusInternalServerError)
 		return
 	}
@@ -278,6 +202,5 @@ func DeleteProduct(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{"message": "Product deleted"})
+	writeJSON(w, http.StatusOK, map[string]string{"message": "Product deleted"})
 }

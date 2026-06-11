@@ -1,12 +1,17 @@
 package handlers
 
 import (
+	"crypto/subtle"
 	"encoding/json"
+	"log"
+	"net"
 	"net/http"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type LoginRequest struct {
@@ -19,6 +24,104 @@ type LoginResponse struct {
 	ExpiresAt int64 `json:"expiresAt"`
 }
 
+// ---- Login rate limiting (in-memory, per client IP) ----
+
+type loginAttempt struct {
+	count     int
+	firstTime time.Time
+}
+
+var (
+	loginAttempts = make(map[string]*loginAttempt)
+	attemptsMu    sync.Mutex
+)
+
+const (
+	maxLoginAttempts = 5
+	lockoutDuration  = 15 * time.Minute
+)
+
+func clientIP(r *http.Request) string {
+	// Honor reverse-proxy header (Render/Vercel set this)
+	if fwd := r.Header.Get("X-Forwarded-For"); fwd != "" {
+		if ip, _, ok := splitFirstComma(fwd); ok {
+			return ip
+		}
+		return fwd
+	}
+	host, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		return r.RemoteAddr
+	}
+	return host
+}
+
+func splitFirstComma(s string) (string, string, bool) {
+	for i := 0; i < len(s); i++ {
+		if s[i] == ',' {
+			return s[:i], s[i+1:], true
+		}
+	}
+	return s, "", s != ""
+}
+
+func isLockedOut(key string) bool {
+	attemptsMu.Lock()
+	defer attemptsMu.Unlock()
+
+	a, ok := loginAttempts[key]
+	if !ok {
+		return false
+	}
+	if time.Since(a.firstTime) > lockoutDuration {
+		delete(loginAttempts, key)
+		return false
+	}
+	return a.count >= maxLoginAttempts
+}
+
+func recordFailedAttempt(key string) {
+	attemptsMu.Lock()
+	defer attemptsMu.Unlock()
+
+	a, ok := loginAttempts[key]
+	if !ok || time.Since(a.firstTime) > lockoutDuration {
+		loginAttempts[key] = &loginAttempt{count: 1, firstTime: time.Now()}
+		return
+	}
+	a.count++
+}
+
+func clearAttempts(key string) {
+	attemptsMu.Lock()
+	defer attemptsMu.Unlock()
+	delete(loginAttempts, key)
+}
+
+// credentialsValid checks the supplied credentials using constant-time
+// comparison. If ADMIN_PASSWORD_HASH (bcrypt) is set it takes precedence
+// over the plain ADMIN_PASSWORD.
+func credentialsValid(username, password string) bool {
+	adminUsername := os.Getenv("ADMIN_USERNAME")
+	if adminUsername == "" {
+		return false
+	}
+
+	userOK := subtle.ConstantTimeCompare([]byte(username), []byte(adminUsername)) == 1
+
+	if hash := os.Getenv("ADMIN_PASSWORD_HASH"); hash != "" {
+		passOK := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password)) == nil
+		return userOK && passOK
+	}
+
+	adminPassword := os.Getenv("ADMIN_PASSWORD")
+	if adminPassword == "" {
+		return false
+	}
+	passOK := subtle.ConstantTimeCompare([]byte(password), []byte(adminPassword)) == 1
+	return userOK && passOK
+}
+
 // Login authenticates an admin and returns a JWT token
 func Login(w http.ResponseWriter, r *http.Request) {
 	var req LoginRequest
@@ -27,15 +130,21 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Validate credentials against environment variables
-	// In production, should query database for admin user
-	adminUsername := os.Getenv("ADMIN_USERNAME")
-	adminPassword := os.Getenv("ADMIN_PASSWORD")
+	ip := clientIP(r)
+	if isLockedOut(ip) {
+		log.Printf("Login blocked (rate limited) from %s", ip)
+		http.Error(w, "Too many failed attempts. Try again in 15 minutes.", http.StatusTooManyRequests)
+		return
+	}
 
-	if req.Username != adminUsername || req.Password != adminPassword {
+	if !credentialsValid(req.Username, req.Password) {
+		recordFailedAttempt(ip)
+		log.Printf("Failed login attempt for user %q from %s", req.Username, ip)
 		http.Error(w, "Invalid credentials", http.StatusUnauthorized)
 		return
 	}
+
+	clearAttempts(ip)
 
 	// Generate JWT token
 	expiresAt := time.Now().Add(24 * time.Hour)
@@ -47,6 +156,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 
 	tokenString, err := token.SignedString([]byte(os.Getenv("JWT_SECRET")))
 	if err != nil {
+		log.Printf("Login: failed to sign token: %v", err)
 		http.Error(w, "Failed to generate token", http.StatusInternalServerError)
 		return
 	}
@@ -61,6 +171,10 @@ func Login(w http.ResponseWriter, r *http.Request) {
 // VerifyToken verifies a JWT token and returns the claims
 func VerifyToken(tokenString string) (jwt.MapClaims, error) {
 	token, err := jwt.ParseWithClaims(tokenString, jwt.MapClaims{}, func(token *jwt.Token) (interface{}, error) {
+		// Reject tokens signed with an unexpected algorithm
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, jwt.ErrSignatureInvalid
+		}
 		return []byte(os.Getenv("JWT_SECRET")), nil
 	})
 	if err != nil {
@@ -68,12 +182,12 @@ func VerifyToken(tokenString string) (jwt.MapClaims, error) {
 	}
 
 	if !token.Valid {
-		return nil, err
+		return nil, jwt.ErrTokenInvalidClaims
 	}
 
 	claims, ok := token.Claims.(jwt.MapClaims)
 	if !ok {
-		return nil, err
+		return nil, jwt.ErrTokenInvalidClaims
 	}
 
 	return claims, nil

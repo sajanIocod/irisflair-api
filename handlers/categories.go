@@ -72,6 +72,11 @@ func CreateCategory(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if err := validateCategory(&category); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
 	category.ID = primitive.NewObjectID()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -106,6 +111,8 @@ func UpdateCategory(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
+
+	updates = sanitizeUpdates(updates, "_id", "id")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()

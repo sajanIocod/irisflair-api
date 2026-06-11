@@ -72,6 +72,11 @@ func CreateTestimonial(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if err := validateTestimonial(&testimonial); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
 	testimonial.ID = primitive.NewObjectID()
 	if testimonial.Order == 0 {
 		testimonial.Order = 9999 // Default order
@@ -109,6 +114,8 @@ func UpdateTestimonial(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
+
+	updates = sanitizeUpdates(updates, "_id", "id")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()

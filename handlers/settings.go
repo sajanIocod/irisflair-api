@@ -52,6 +52,9 @@ func UpdateSettings(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Strip Mongo operators / dotted keys and protect the settings doc key
+	updates = sanitizeUpdates(updates, "_id", "id", "name")
+
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 

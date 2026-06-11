@@ -11,9 +11,18 @@ import (
 	"github.com/irisflair/api/db"
 	"github.com/irisflair/api/handlers"
 	"github.com/irisflair/api/middleware"
+	"github.com/joho/godotenv"
 )
 
 func main() {
+	// Load .env if present (no-op in production where env vars are set directly)
+	_ = godotenv.Load()
+
+	// Validate required environment variables before doing anything else
+	if err := validateEnv(); err != nil {
+		log.Fatalf("Environment validation failed: %v", err)
+	}
+
 	// Load environment variables
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -37,12 +46,18 @@ func main() {
 	} else {
 		mongoConnected = true
 		defer db.Disconnect()
+
+		// Ensure indexes for common query patterns
+		if err := db.EnsureIndexes(); err != nil {
+			log.Printf("WARNING: failed to ensure indexes: %v", err)
+		}
 	}
 
 	// Initialize router
 	r := chi.NewRouter()
 
 	// Global middleware
+	r.Use(middleware.SecurityHeadersMiddleware)
 	r.Use(middleware.CORSMiddleware)
 	r.Use(middleware.ErrorRecoveryMiddleware)
 
@@ -119,9 +134,48 @@ func main() {
 		log.Println("✓ Self-ping enabled (every 14 min)")
 	}
 
-	// Start server
+	// Start server with sane timeouts (prevents slowloris / resource leaks)
+	srv := &http.Server{
+		Addr:              ":" + port,
+		Handler:           r,
+		ReadHeaderTimeout: 10 * time.Second,
+		ReadTimeout:       30 * time.Second,
+		WriteTimeout:      60 * time.Second,
+		IdleTimeout:       120 * time.Second,
+	}
+
 	log.Printf("Starting server on port %s...", port)
-	if err := http.ListenAndServe(":"+port, r); err != nil {
+	if err := srv.ListenAndServe(); err != nil {
 		log.Fatalf("Server failed to start: %v", err)
 	}
+}
+
+// validateEnv ensures required environment variables are present and sane.
+func validateEnv() error {
+	secret := os.Getenv("JWT_SECRET")
+	if secret == "" {
+		return fmt.Errorf("JWT_SECRET is required")
+	}
+	if len(secret) < 32 {
+		return fmt.Errorf("JWT_SECRET must be at least 32 characters (got %d)", len(secret))
+	}
+
+	if os.Getenv("ADMIN_USERNAME") == "" {
+		return fmt.Errorf("ADMIN_USERNAME is required")
+	}
+
+	// Either a bcrypt hash (preferred) or a plain password must be set
+	hash := os.Getenv("ADMIN_PASSWORD_HASH")
+	plain := os.Getenv("ADMIN_PASSWORD")
+	if hash == "" && plain == "" {
+		return fmt.Errorf("ADMIN_PASSWORD_HASH or ADMIN_PASSWORD is required")
+	}
+	if hash == "" && len(plain) < 8 {
+		return fmt.Errorf("ADMIN_PASSWORD must be at least 8 characters")
+	}
+	if hash == "" {
+		log.Println("WARNING: using plain ADMIN_PASSWORD — set ADMIN_PASSWORD_HASH (bcrypt) for better security")
+	}
+
+	return nil
 }
