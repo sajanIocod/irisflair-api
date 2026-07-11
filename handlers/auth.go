@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -100,21 +101,23 @@ func clearAttempts(key string) {
 
 // credentialsValid checks the supplied credentials using constant-time
 // comparison. If ADMIN_PASSWORD_HASH (bcrypt) is set it takes precedence
-// over the plain ADMIN_PASSWORD.
+// over the plain ADMIN_PASSWORD. Env values are whitespace-trimmed:
+// dashboard-pasted values can carry invisible trailing newlines that make
+// byte-exact comparison impossible to satisfy from a login form.
 func credentialsValid(username, password string) bool {
-	adminUsername := os.Getenv("ADMIN_USERNAME")
+	adminUsername := strings.TrimSpace(os.Getenv("ADMIN_USERNAME"))
 	if adminUsername == "" {
 		return false
 	}
 
 	userOK := subtle.ConstantTimeCompare([]byte(username), []byte(adminUsername)) == 1
 
-	if hash := os.Getenv("ADMIN_PASSWORD_HASH"); hash != "" {
+	if hash := strings.TrimSpace(os.Getenv("ADMIN_PASSWORD_HASH")); hash != "" {
 		passOK := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password)) == nil
 		return userOK && passOK
 	}
 
-	adminPassword := os.Getenv("ADMIN_PASSWORD")
+	adminPassword := strings.TrimSpace(os.Getenv("ADMIN_PASSWORD"))
 	if adminPassword == "" {
 		return false
 	}
