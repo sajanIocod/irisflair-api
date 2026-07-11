@@ -53,6 +53,9 @@ func main() {
 			log.Printf("WARNING: failed to ensure indexes: %v", err)
 		}
 
+		// Backfill slugs for products created before the field existed
+		go jobs.EnsureSlugs()
+
 		// Periodic badge/FBT recompute (also runs once at startup)
 		jobs.Start(6 * time.Hour)
 	}

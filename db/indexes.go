@@ -28,6 +28,10 @@ func EnsureIndexes() error {
 			{Keys: bson.D{{Key: "active", Value: 1}, {Key: "createdAt", Value: -1}}},
 			{Keys: bson.D{{Key: "category", Value: 1}}},
 			{Keys: bson.D{{Key: "featured", Value: 1}}},
+			// Unique slug, partial so pre-backfill docs (no slug yet) don't collide.
+			{Keys: bson.D{{Key: "slug", Value: 1}},
+				Options: options.Index().SetUnique(true).SetPartialFilterExpression(
+					bson.M{"slug": bson.M{"$type": "string", "$gt": ""}})},
 		},
 		"categories": {
 			{Keys: bson.D{{Key: "active", Value: 1}, {Key: "order", Value: 1}}},

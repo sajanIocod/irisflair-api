@@ -9,6 +9,10 @@ import (
 type Product struct {
 	ID          primitive.ObjectID `bson:"_id,omitempty" json:"id"`
 	Name        string             `bson:"name" json:"name"`
+	// Slug is the SEO URL segment (/product/rose-gold-invite). Generated
+	// server-side from the name at create time and then immutable so links
+	// never break; unique via a partial index.
+	Slug        string             `bson:"slug" json:"slug"`
 	Code        string             `bson:"code" json:"code"`
 	Category    string             `bson:"category" json:"category"`
 	Price       float64            `bson:"price" json:"price"`

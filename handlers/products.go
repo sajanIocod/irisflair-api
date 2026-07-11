@@ -9,6 +9,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/irisflair/api/db"
+	"github.com/irisflair/api/jobs"
 	"github.com/irisflair/api/models"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -75,14 +76,13 @@ func GetActiveProducts(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, products)
 }
 
-// GetProduct returns a single product by ID
+// GetProduct returns a single product by hex ObjectID or by slug.
 func GetProduct(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
-	
-	objID, err := primitive.ObjectIDFromHex(id)
-	if err != nil {
-		http.Error(w, "Invalid product ID", http.StatusBadRequest)
-		return
+
+	filter := bson.M{"slug": id}
+	if objID, err := primitive.ObjectIDFromHex(id); err == nil {
+		filter = bson.M{"_id": objID}
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), queryTimeout)
@@ -90,8 +90,8 @@ func GetProduct(w http.ResponseWriter, r *http.Request) {
 
 	collection := db.GetDB().Collection("products")
 	var product models.Product
-	
-	if err := collection.FindOne(ctx, bson.M{"_id": objID}).Decode(&product); err != nil {
+
+	if err := collection.FindOne(ctx, filter).Decode(&product); err != nil {
 		http.Error(w, "Product not found", http.StatusNotFound)
 		return
 	}
@@ -123,6 +123,17 @@ func CreateProduct(w http.ResponseWriter, r *http.Request) {
 	// (Counters can't arrive via JSON — they're json:"-" — so zero values stand.)
 	product.Badges = nil
 	product.OftenEnquiredWith = nil
+
+	// Slug is server-generated from the name and immutable afterwards.
+	slugCtx, slugCancel := context.WithTimeout(context.Background(), queryTimeout)
+	slug, err := jobs.UniqueSlug(slugCtx, product.Name, product.ID)
+	slugCancel()
+	if err != nil {
+		log.Printf("CreateProduct: slug generation error: %v", err)
+		http.Error(w, "Failed to create product", http.StatusInternalServerError)
+		return
+	}
+	product.Slug = slug
 
 	normalizeProduct(&product)
 
@@ -159,7 +170,7 @@ func UpdateProduct(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	updates = sanitizeUpdates(updates, "_id", "id", "createdAt",
+	updates = sanitizeUpdates(updates, "_id", "id", "createdAt", "slug",
 		"badges", "oftenEnquiredWith", "viewCount", "whatsappClickCount")
 	if v, ok := updates["discountPercent"]; ok {
 		f, isNum := v.(float64) // encoding/json decodes all JSON numbers as float64
