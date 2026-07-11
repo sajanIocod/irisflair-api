@@ -10,23 +10,29 @@ import (
 	"github.com/irisflair/api/handlers"
 )
 
-// AuthMiddleware checks for valid JWT token in Authorization header
+// AuthMiddleware checks for a valid JWT in the HttpOnly auth cookie (how the
+// admin app authenticates — XSS cannot read it) or, as a fallback for tooling
+// and API clients, in the Authorization: Bearer header.
 func AuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		authHeader := r.Header.Get("Authorization")
-		if authHeader == "" {
-			http.Error(w, "Missing authorization header", http.StatusUnauthorized)
-			return
+		var tokenString string
+
+		if authHeader := r.Header.Get("Authorization"); authHeader != "" {
+			// Extract token from "Bearer <token>" format
+			parts := strings.Split(authHeader, " ")
+			if len(parts) != 2 || parts[0] != "Bearer" {
+				http.Error(w, "Invalid authorization header format", http.StatusUnauthorized)
+				return
+			}
+			tokenString = parts[1]
+		} else if cookie, err := r.Cookie(handlers.AuthCookieName); err == nil {
+			tokenString = cookie.Value
 		}
 
-		// Extract token from "Bearer <token>" format
-		parts := strings.Split(authHeader, " ")
-		if len(parts) != 2 || parts[0] != "Bearer" {
-			http.Error(w, "Invalid authorization header format", http.StatusUnauthorized)
+		if tokenString == "" {
+			http.Error(w, "Missing credentials", http.StatusUnauthorized)
 			return
 		}
-
-		tokenString := parts[1]
 
 		// Verify token
 		claims, err := handlers.VerifyToken(tokenString)

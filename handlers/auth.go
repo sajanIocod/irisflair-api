@@ -25,6 +25,27 @@ type LoginResponse struct {
 	ExpiresAt int64 `json:"expiresAt"`
 }
 
+// AuthCookieName is the HttpOnly session cookie the admin app authenticates
+// with. It is set by Login, cleared by Logout, and read by AuthMiddleware.
+const AuthCookieName = "admin_token"
+
+// setAuthCookie writes the HttpOnly session cookie. Secure is safe for local
+// development too: browsers treat http://localhost as a trustworthy origin.
+// SameSite=Lax stops cross-site POST/PUT/DELETE from carrying the cookie
+// (CSRF), while same-origin admin traffic — proxied via the app's /backend
+// route — always includes it.
+func setAuthCookie(w http.ResponseWriter, token string, expiresAt time.Time) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     AuthCookieName,
+		Value:    token,
+		Path:     "/",
+		Expires:  expiresAt,
+		HttpOnly: true,
+		Secure:   true,
+		SameSite: http.SameSiteLaxMode,
+	})
+}
+
 // ---- Login rate limiting (in-memory, per client IP) ----
 
 type loginAttempt struct {
@@ -164,10 +185,37 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// The admin app authenticates via this HttpOnly cookie (invisible to JS);
+	// the body token remains for curl/API tooling only.
+	setAuthCookie(w, tokenString, expiresAt)
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(LoginResponse{
 		Token:     tokenString,
 		ExpiresAt: expiresAt.Unix(),
+	})
+}
+
+// Logout clears the auth cookie.
+func Logout(w http.ResponseWriter, r *http.Request) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     AuthCookieName,
+		Value:    "",
+		Path:     "/",
+		MaxAge:   -1,
+		HttpOnly: true,
+		Secure:   true,
+		SameSite: http.SameSiteLaxMode,
+	})
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// Me reports the authenticated admin (auth-protected route); the app uses it
+// to restore the session from the cookie on page load.
+func Me(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{
+		"username": r.Header.Get("X-Username"),
 	})
 }
 

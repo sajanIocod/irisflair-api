@@ -72,6 +72,8 @@ func main() {
 	r.Route("/api", func(r chi.Router) {
 		// Auth routes
 		r.Post("/auth/login", handlers.Login)
+		r.Post("/auth/logout", handlers.Logout)
+		r.With(middleware.AuthMiddleware).Get("/auth/me", handlers.Me)
 
 		// Products routes (public read, protected write)
 		r.Get("/products", handlers.GetProducts)
