@@ -10,6 +10,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/irisflair/api/db"
 	"github.com/irisflair/api/handlers"
+	"github.com/irisflair/api/jobs"
 	"github.com/irisflair/api/middleware"
 	"github.com/joho/godotenv"
 )
@@ -51,6 +52,9 @@ func main() {
 		if err := db.EnsureIndexes(); err != nil {
 			log.Printf("WARNING: failed to ensure indexes: %v", err)
 		}
+
+		// Periodic badge/FBT recompute (also runs once at startup)
+		jobs.Start(6 * time.Hour)
 	}
 
 	// Initialize router
@@ -102,6 +106,12 @@ func main() {
 		// Settings routes
 		r.Get("/settings", handlers.GetSettings)
 		r.With(middleware.AuthMiddleware).Put("/settings", handlers.UpdateSettings)
+
+		// Event tracking (public, rate-limited) + admin badge recompute
+		r.Post("/track/view", handlers.TrackView)
+		r.Post("/track/enquiry", handlers.TrackEnquiry)
+		r.With(middleware.AuthMiddleware).Post("/admin/recompute-badges", handlers.RecomputeBadges)
+		r.With(middleware.AuthMiddleware).Get("/admin/analytics", handlers.GetAnalytics)
 	})
 
 	// Health check endpoint

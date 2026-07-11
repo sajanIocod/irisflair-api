@@ -23,8 +23,32 @@ type Product struct {
 	Tags        []string           `bson:"tags" json:"tags"`
 	ColorVariants []ColorVariant   `bson:"colorVariants" json:"colorVariants"`
 	HasAdditionalPrintingCharge bool `bson:"hasAdditionalPrintingCharge" json:"hasAdditionalPrintingCharge"`
+	// DiscountPercent (0–90): admin-managed per-product offer; 0 = no discount.
+	DiscountPercent float64 `bson:"discountPercent" json:"discountPercent"`
+	// Badges and OftenEnquiredWith are computed by the badge job — server-owned,
+	// blocked from client writes in the product handlers.
+	Badges            []string `bson:"badges" json:"badges"`                       // "new" | "trending" | "bestseller"
+	OftenEnquiredWith []string `bson:"oftenEnquiredWith" json:"oftenEnquiredWith"` // co-enquired product IDs (hex)
+	// Raw counters are internal signals — hidden from the public API.
+	ViewCount          int64 `bson:"viewCount" json:"-"`
+	WhatsappClickCount int64 `bson:"whatsappClickCount" json:"-"`
 	CreatedAt   time.Time          `bson:"createdAt" json:"createdAt"`
 	UpdatedAt   time.Time          `bson:"updatedAt" json:"updatedAt"`
+}
+
+// ProductEvent is a single tracked interaction, TTL-expired after 90 days.
+type ProductEvent struct {
+	ProductID primitive.ObjectID `bson:"productId"`
+	Type      string             `bson:"type"` // "view" | "whatsapp_click"
+	CreatedAt time.Time          `bson:"createdAt"`
+}
+
+// EnquiryEvent is one WhatsApp enquiry hand-off (single- or multi-product).
+// Kept forever: it is the honest enquiry-volume log, and docs with 2+ products
+// are the pair data behind "often enquired together".
+type EnquiryEvent struct {
+	ProductIDs []primitive.ObjectID `bson:"productIds"`
+	CreatedAt  time.Time            `bson:"createdAt"`
 }
 
 type PriceTier struct {

@@ -119,6 +119,11 @@ func CreateProduct(w http.ResponseWriter, r *http.Request) {
 	product.CreatedAt = time.Now()
 	product.UpdatedAt = time.Now()
 
+	// Computed fields are server-owned; a fresh product starts with none.
+	// (Counters can't arrive via JSON — they're json:"-" — so zero values stand.)
+	product.Badges = nil
+	product.OftenEnquiredWith = nil
+
 	normalizeProduct(&product)
 
 	ctx, cancel := context.WithTimeout(context.Background(), writeTimeout)
@@ -154,7 +159,15 @@ func UpdateProduct(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	updates = sanitizeUpdates(updates, "_id", "id", "createdAt")
+	updates = sanitizeUpdates(updates, "_id", "id", "createdAt",
+		"badges", "oftenEnquiredWith", "viewCount", "whatsappClickCount")
+	if v, ok := updates["discountPercent"]; ok {
+		f, isNum := v.(float64) // encoding/json decodes all JSON numbers as float64
+		if !isNum || f < 0 || f > 90 {
+			http.Error(w, "discountPercent must be between 0 and 90", http.StatusBadRequest)
+			return
+		}
+	}
 	updates["updatedAt"] = time.Now()
 
 	ctx, cancel := context.WithTimeout(context.Background(), writeTimeout)

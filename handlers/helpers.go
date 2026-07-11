@@ -46,6 +46,12 @@ func normalizeProduct(p *models.Product) {
 	if p.Tags == nil {
 		p.Tags = make([]string, 0)
 	}
+	if p.Badges == nil {
+		p.Badges = make([]string, 0)
+	}
+	if p.OftenEnquiredWith == nil {
+		p.OftenEnquiredWith = make([]string, 0)
+	}
 }
 
 // sanitizeUpdates removes dangerous keys from a client-supplied update document:
@@ -81,6 +87,9 @@ func validateProduct(p *models.Product) error {
 	}
 	if p.Price < 0 {
 		return fmt.Errorf("price cannot be negative")
+	}
+	if p.DiscountPercent < 0 || p.DiscountPercent > 90 {
+		return fmt.Errorf("discountPercent must be between 0 and 90")
 	}
 	if len(p.Description) > 10000 {
 		return fmt.Errorf("description must be at most 10000 characters")

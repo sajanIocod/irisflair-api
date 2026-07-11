@@ -8,6 +8,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 // EnsureIndexes creates indexes used by the common query patterns.
@@ -39,6 +40,17 @@ func EnsureIndexes() error {
 		},
 		"settings": {
 			{Keys: bson.D{{Key: "name", Value: 1}}},
+		},
+		"product_events": {
+			// TTL: events only feed the 14-day trending window; 90 days is plenty.
+			{Keys: bson.D{{Key: "createdAt", Value: 1}},
+				Options: options.Index().SetExpireAfterSeconds(90 * 24 * 3600)},
+			{Keys: bson.D{{Key: "productId", Value: 1}, {Key: "type", Value: 1}}},
+		},
+		"enquiry_events": {
+			// No TTL — this is the permanent enquiry log; the badge job reads a
+			// capped recent slice so unbounded growth doesn't affect job cost.
+			{Keys: bson.D{{Key: "createdAt", Value: -1}}},
 		},
 	}
 
